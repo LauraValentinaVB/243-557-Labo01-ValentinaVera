@@ -1,14 +1,18 @@
 from PyQt6.QtWidgets import (
     QLabel,
-    QPushButton,
     QVBoxLayout,
+    QHBoxLayout,
     QWidget,
     QGroupBox,
+    QPushButton,
 )
 
 from models.sensor import Sensor
 from models.actuator import Actuator
 from controllers.system_controller import SystemController
+from hardware.simulation_hardware import SimulationHardware
+from views.sensor_widget import SensorWidget
+from views.actuator_widget import ActuatorWidget
 
 
 class MainWindow(QWidget):
@@ -18,44 +22,40 @@ class MainWindow(QWidget):
         super().__init__()
 
         self.setWindowTitle("243-557 — DiagnosticTool")
-        self.resize(360, 260)
+        self.resize(700, 400)
 
+        # Couche matérielle (une seule instance partagée)
+        self.hardware = SimulationHardware()
+
+        # Modèles
         self.sensor = Sensor(
             "Distance",
             "cm",
-            10.0,
+            self.hardware,
         )
-
-        self.actuator = Actuator("DEL diagnostic")
+        self.actuator = Actuator("DEL diagnostic", self.hardware)
         self.controller = SystemController(self.sensor, self.actuator)
 
+         # Deuxième capteur
+        self.temperature_sensor = Sensor(
+            "Température",
+            "°C",
+            self.hardware,
+        )
+
         self.title_label = QLabel("Logiciel de diagnostic - Valentina Vera")
+        self.title_label.setStyleSheet(
+            """
+            font-size: 22px;
+            font-weight: bold;
+            """
+            )
 
-        # ----- Capteur -----
-        self.sensor_name_label = QLabel(f"Nom : {self.sensor.name}")
-        self.sensor_unit_label = QLabel(f"Unité : {self.sensor.unit}")
-        self.sensor_value_label = QLabel("Valeur : ---")
-        self.read_button = QPushButton("Lire le capteur")
-        
-        sensor_group = QGroupBox("Capteur")
-        sensor_layout = QVBoxLayout()
-        sensor_layout.addWidget(self.sensor_name_label)
-        sensor_layout.addWidget(self.sensor_value_label)
-        sensor_layout.addWidget(self.sensor_unit_label)
-        sensor_layout.addWidget(self.read_button)
-        sensor_group.setLayout(sensor_layout)
-
-        # ---- Actionneur ----
-        self.actuator_name_label = QLabel(f"Nom : {self.actuator.nom}")
-        self.actuator_state_label = QLabel(self._etat_texte())
-        self.toggle_button = QPushButton("Inverser l'état de l'actionneur")
-
-        actuator_group = QGroupBox("Actionneur")
-        actuator_layout = QVBoxLayout()
-        actuator_layout.addWidget(self.actuator_name_label)
-        actuator_layout.addWidget(self.actuator_state_label)
-        actuator_layout.addWidget(self.toggle_button)
-        actuator_group.setLayout(actuator_layout)
+        # Composants graphiques réutilisables
+        self.sensor_widget = SensorWidget(self.sensor)
+        self.temperature_widget = SensorWidget(self.temperature_sensor)
+        self.actuator_widget = ActuatorWidget(self.actuator)
+        self.sensor_widget.read_button.clicked.connect(self._apres_lecture_capteur)
 
         # ---- Système ----
         self.system_state_label = QLabel(self._systeme_texte())
@@ -71,38 +71,45 @@ class MainWindow(QWidget):
         system_layout.addWidget(self.reset_button)
         system_group.setLayout(system_layout)
 
+        system_group.setStyleSheet(
+            """
+            QGroupBox {
+                border: 2px solid #2563EB;
+                border-radius: 6px;
+                margin-top: 10px;
+                font-weight: bold;
+            }
+            """
+)
+
+        # ---- Layout horizontal des composants ----
+        widgets_layout = QHBoxLayout()
+        widgets_layout.addWidget(self.sensor_widget)
+        widgets_layout.addWidget(self.actuator_widget)
+        widgets_layout.addWidget(system_group)
+        widgets_layout.setSpacing(20)
+
+        widgets_layout = QHBoxLayout()
+        widgets_layout.addWidget(self.sensor_widget)
+        widgets_layout.addWidget(self.temperature_widget)
+        widgets_layout.addWidget(self.actuator_widget)
+        widgets_layout.addWidget(system_group)
+        widgets_layout.setSpacing(20)
+
         # ---- Layout principal ----
         layout = QVBoxLayout()
         layout.addWidget(self.title_label)
-        layout.addWidget(sensor_group)
-        layout.addWidget(actuator_group)
-        layout.addWidget(system_group)
+        layout.addLayout(widgets_layout)
+        layout.setContentsMargins(15, 15, 15, 15)
         self.setLayout(layout)
 
-        # ---- Connexions des boutons ----
-        self.read_button.clicked.connect(self.read_sensor)
-        self.toggle_button.clicked.connect(self.toggle_actuator)
+        # ---- Connexions des boutons système ----
         self.start_button.clicked.connect(self.demarrer_systeme)
         self.stop_button.clicked.connect(self.arreter_systeme)
         self.reset_button.clicked.connect(self.reinitialiser_systeme)
 
-    def read_sensor(self) -> None:
-        value = self.sensor.read()
-        self.sensor_value_label.setText(
-            f"Valeur : {value}"
-        )
-        self.controller.verifier_capteur()
-        self._rafraichir_interface()
-
-    def _etat_texte(self) -> str:
-        return "État : Actif" if self.actuator.actif else "État : Inactif"
-
     def _systeme_texte(self) -> str:
         return f"État du système : {self.controller.state}"
-
-    def toggle_actuator(self) -> None:
-        self.actuator.inverser_etat()
-        self.actuator_state_label.setText(self._etat_texte())
 
     def demarrer_systeme(self) -> None:
         self.controller.demarrer()
@@ -118,4 +125,8 @@ class MainWindow(QWidget):
 
     def _rafraichir_interface(self) -> None:
         self.system_state_label.setText(self._systeme_texte())
-        self.actuator_state_label.setText(self._etat_texte())
+
+    def _apres_lecture_capteur(self) -> None:
+        self.controller.verifier_capteur()
+        self._rafraichir_interface()
+        self.actuator_widget.update_display()

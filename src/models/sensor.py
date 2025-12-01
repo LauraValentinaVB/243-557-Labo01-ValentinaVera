@@ -3,15 +3,13 @@ class Sensor:
             self,
             name: str,
             unit: str,
-            value: float = 0.0,
+            hardware,
     ) -> None:
             self.name = name
             self.unit = unit
-            self.value = value 
+            self.hardware = hardware
 
     def read(self) -> float:
-        return self.value 
-
-    def set_value (self, value: float) -> None:
-        self. value = value
+        return self.hardware.read_sensor(self.name)
+    
         

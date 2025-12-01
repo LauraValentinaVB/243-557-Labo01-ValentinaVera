@@ -1,24 +1,22 @@
 class Actuator:
 
-    def __init__(self, nom):
+    def __init__(self, nom, hardware):
         self.nom = nom
+        self.hardware = hardware
         self.actif = False
 
     def activer (self):
         self.actif = True
+        self.hardware.set_actuator(self.nom, self.actif)
 
     def desactiver (self):
         self.actif = False
+        self.hardware.set_actuator(self.nom, self.actif)
 
     def inverser_etat(self):
-        self.actif = not self.actif
-
-        
-if __name__ == "__main__":
-     a = Actuator("Lemonade")
-     print(a.nom, a.actif)
-     a.activer()
-     print(a.nom, a.actif)
-     a.inverser_etat()
-     print(a.nom, a.actif)
+        if self.actif:
+            self.desactiver()
+        else:
+            self.activer()
+    
 
