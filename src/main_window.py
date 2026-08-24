@@ -15,7 +15,7 @@ class MainWindow(QWidget):
         self.setWindowTitle("243-557 — DiagnosticTool")
         self.resize(360, 220)
 
-        self.title_label = QLabel("Logiciel de diagnostic")
+        self.title_label = QLabel("Logiciel de diagnostic - Valentina Vera")
         self.sensor_name_label = QLabel("Capteur : Température")
         self.sensor_value_label = QLabel("Valeur : ---")
         self.read_button = QPushButton("Lire le capteur")
