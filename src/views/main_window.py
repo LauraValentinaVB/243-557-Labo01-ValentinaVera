@@ -33,7 +33,7 @@ class MainWindow(QWidget):
 
         # Modèles
         self.sensor = Sensor(
-            "Distance",
+            "Holaaaaaaa",
             "cm",
             self.hardware,
         )
